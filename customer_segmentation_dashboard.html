@@ -1,0 +1,384 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .dash { padding: 1.5rem 1rem; }
+  .header { margin-bottom: 1.5rem; }
+  .header h1 { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+  .header p { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px 16px; }
+  .metric-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .metric-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+  .metric-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 3px; }
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.5rem; }
+  .chart-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+  .card-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .card-sub { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 14px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; font-size: 11px; color: var(--color-text-secondary); }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+  .segments-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .segments-table th { text-align: left; color: var(--color-text-secondary); font-weight: 400; padding: 6px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .segments-table td { padding: 7px 8px; color: var(--color-text-primary); border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 500; }
+  .full-row { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .tab { padding: 6px 14px; font-size: 12px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s; }
+  .tab.active { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-primary); font-weight: 500; }
+  .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+  .bar-label { width: 80px; color: var(--color-text-secondary); flex-shrink: 0; text-align: right; font-size: 11px; }
+  .bar-track { flex: 1; height: 8px; background: var(--color-background-secondary); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
+  .bar-val { width: 32px; font-size: 11px; color: var(--color-text-secondary); }
+  .seg-btn { width: 100%; text-align: left; padding: 10px 12px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); background: var(--color-background-primary); cursor: pointer; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; transition: border-color 0.15s; }
+  .seg-btn.sel { border-color: var(--color-border-info); background: var(--color-background-info); }
+  .seg-btn-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .seg-btn-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+  .seg-btn-count { font-size: 11px; color: var(--color-text-secondary); }
+  .detail-panel { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+  .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px; }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { color: var(--color-text-secondary); }
+  .detail-val { font-weight: 500; color: var(--color-text-primary); }
+</style>
+
+<div class="dash">
+  <h2 class="sr-only">Customer Segmentation Dashboard showing cluster analysis, purchase patterns, and demographic insights across 4 customer segments.</h2>
+  <div class="header">
+    <h1><i class="ti ti-users" aria-hidden="true" style="margin-right:8px; font-size:20px; vertical-align:-2px; color:#3266ad;"></i>Customer segmentation dashboard</h1>
+    <p>K-means clustering · 4 segments · 12,480 customers · Last updated May 2026</p>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-users" aria-hidden="true"></i>Total customers</div>
+      <div class="metric-value">12,480</div>
+      <div class="metric-sub">+8.2% vs last quarter</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-category" aria-hidden="true"></i>Segments</div>
+      <div class="metric-value">4</div>
+      <div class="metric-sub">Silhouette score 0.71</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-coin" aria-hidden="true"></i>Avg. lifetime value</div>
+      <div class="metric-value">$2,340</div>
+      <div class="metric-sub">Champions drive 54%</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-repeat" aria-hidden="true"></i>Avg. purchase freq.</div>
+      <div class="metric-value">4.6×</div>
+      <div class="metric-sub">Per customer / year</div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabBar">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="segments">Segment profiles</button>
+    <button class="tab" data-tab="patterns">Purchase patterns</button>
+    <button class="tab" data-tab="demographics">Demographics</button>
+  </div>
+
+  <div id="tab-overview">
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="card-title">Segment distribution</div>
+        <div class="card-sub">Customer count by cluster</div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#3266ad;"></span>Champions</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#5DCAA5;"></span>Loyal</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#EF9F27;"></span>At-risk</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Dormant</span>
+        </div>
+        <div style="position:relative;width:100%;height:210px;">
+          <canvas id="pieChart" role="img" aria-label="Pie chart: Champions 28%, Loyal 34%, At-risk 22%, Dormant 16%">Champions 28%, Loyal 34%, At-risk 22%, Dormant 16%.</canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Revenue contribution</div>
+        <div class="card-sub">Total revenue share by segment</div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#3266ad;"></span>Champions 54%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#5DCAA5;"></span>Loyal 29%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#EF9F27;"></span>At-risk 12%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Dormant 5%</span>
+        </div>
+        <div style="position:relative;width:100%;height:210px;">
+          <canvas id="revenueBar" role="img" aria-label="Bar chart showing revenue contribution: Champions $14.1M, Loyal $7.5M, At-risk $3.1M, Dormant $1.3M">Champions $14.1M, Loyal $7.5M, At-risk $3.1M, Dormant $1.3M.</canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:14px;">
+      <div class="card-title">Cluster scatter plot — RFM space</div>
+      <div class="card-sub">Recency vs frequency, bubble size = monetary value</div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#3266ad;"></span>Champions</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#5DCAA5;"></span>Loyal</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#EF9F27;"></span>At-risk</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Dormant</span>
+      </div>
+      <div style="position:relative;width:100%;height:240px;">
+        <canvas id="scatterChart" role="img" aria-label="Scatter plot of customer clusters in RFM space. Champions cluster at high frequency and low recency days. Dormant at high recency days and low frequency.">Champions cluster at high frequency and recent purchase dates. Dormant at high recency gap and low frequency.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-segments" style="display:none;">
+    <div class="bottom-row">
+      <div>
+        <div class="card-title" style="margin-bottom:10px;">Select segment</div>
+        <div id="segButtons"></div>
+      </div>
+      <div>
+        <div class="card-title" style="margin-bottom:10px;">Segment profile</div>
+        <div class="detail-panel" id="detailPanel"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-patterns" style="display:none;">
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="card-title">Monthly purchase trends</div>
+        <div class="card-sub">Avg. orders per customer by month</div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#3266ad;"></span>Champions</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#5DCAA5;"></span>Loyal</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#EF9F27;"></span>At-risk</span>
+        </div>
+        <div style="position:relative;width:100%;height:220px;">
+          <canvas id="trendLine" role="img" aria-label="Line chart of monthly purchase trends for Champions, Loyal, and At-risk segments over 6 months.">Monthly purchase trends across three segments over 6 months.</canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Category preferences</div>
+        <div class="card-sub">Top product categories per segment</div>
+        <div id="catBars" style="margin-top:4px;"></div>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-top:14px;">
+      <div class="card-title">Avg. order value distribution</div>
+      <div class="card-sub">Spread of basket size across clusters</div>
+      <div style="position:relative;width:100%;height:200px;">
+        <canvas id="aovChart" role="img" aria-label="Bar chart comparing average order values across 4 customer segments.">Average order value by segment.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-demographics" style="display:none;">
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="card-title">Age distribution by segment</div>
+        <div class="card-sub">Proportion of age groups per cluster</div>
+        <div style="position:relative;width:100%;height:220px;">
+          <canvas id="ageChart" role="img" aria-label="Stacked bar chart showing age group distribution across 4 customer segments.">Age distribution across segments.</canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Channel preference</div>
+        <div class="card-sub">Primary acquisition and purchase channel</div>
+        <div id="channelBars" style="margin-top:4px;"></div>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-top:14px;">
+      <div class="card-title">Recommended actions</div>
+      <div class="card-sub">Data-driven strategies per segment</div>
+      <table class="segments-table">
+        <thead>
+          <tr>
+            <th>Segment</th><th>Size</th><th>Priority</th><th>Recommended action</th><th>Expected lift</th>
+          </tr>
+        </thead>
+        <tbody id="recTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const segs = [
+  { name:'Champions', color:'#3266ad', count:3494, pct:28, ltv:'$5,210', freq:'8.4×', recency:'12d', aov:'$187', age:'28–45', channel:'Direct / App', badge:'#B5D4F4', badgeText:'#0C447C' },
+  { name:'Loyal', color:'#5DCAA5', count:4243, pct:34, ltv:'$2,890', freq:'5.1×', recency:'28d', aov:'$134', age:'35–55', channel:'Email / Web', badge:'#9FE1CB', badgeText:'#085041' },
+  { name:'At-risk', color:'#EF9F27', count:2746, pct:22, ltv:'$1,050', freq:'2.3×', recency:'74d', aov:'$98', age:'22–40', channel:'Social / Paid', badge:'#FAC775', badgeText:'#633806' },
+  { name:'Dormant', color:'#D85A30', count:1997, pct:16, ltv:'$320', freq:'0.8×', recency:'180d', aov:'$61', age:'40–65', channel:'Organic', badge:'#F5C4B3', badgeText:'#712B13' },
+];
+
+const commonOpts = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{ legend:{ display:false }, tooltip:{ callbacks:{} } }
+};
+
+new Chart(document.getElementById('pieChart'), {
+  type:'doughnut',
+  data:{
+    labels:segs.map(s=>s.name),
+    datasets:[{ data:segs.map(s=>s.pct), backgroundColor:segs.map(s=>s.color), borderWidth:2, borderColor:'#fff', hoverOffset:6 }]
+  },
+  options:{ ...commonOpts, cutout:'60%',
+    plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>`${c.label}: ${c.raw}%` } } }
+  }
+});
+
+new Chart(document.getElementById('revenueBar'), {
+  type:'bar',
+  data:{
+    labels:segs.map(s=>s.name),
+    datasets:[{ data:[14.1,7.5,3.1,1.3], backgroundColor:segs.map(s=>s.color), borderRadius:4, borderSkipped:false }]
+  },
+  options:{ ...commonOpts,
+    scales:{ x:{ grid:{display:false}, ticks:{color:'#888'} }, y:{ grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#888', callback:v=>`$${v}M`} } },
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>`$${c.raw}M`}} }
+  }
+});
+
+const scatterData = [
+  { label:'Champions', color:'#3266ad', data: Array.from({length:40},()=>({ x:Math.round(5+Math.random()*20), y:Math.round(6+Math.random()*5), r:Math.round(8+Math.random()*10) })) },
+  { label:'Loyal', color:'#5DCAA5', data: Array.from({length:40},()=>({ x:Math.round(20+Math.random()*30), y:Math.round(3+Math.random()*4), r:Math.round(5+Math.random()*8) })) },
+  { label:'At-risk', color:'#EF9F27', data: Array.from({length:30},()=>({ x:Math.round(60+Math.random()*30), y:Math.round(1+Math.random()*3), r:Math.round(3+Math.random()*6) })) },
+  { label:'Dormant', color:'#D85A30', data: Array.from({length:25},()=>({ x:Math.round(120+Math.random()*60), y:Math.round(0.5+Math.random()*1.5), r:Math.round(2+Math.random()*4) })) },
+];
+new Chart(document.getElementById('scatterChart'), {
+  type:'bubble',
+  data:{ datasets: scatterData.map(s=>({ label:s.label, data:s.data, backgroundColor:s.color+'bb', borderColor:s.color, borderWidth:1 })) },
+  options:{ ...commonOpts,
+    layout:{ padding:20 },
+    scales:{
+      x:{ title:{display:true, text:'Recency (days since last purchase)', color:'#888', font:{size:11}}, min:-5, max:210, grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#888'} },
+      y:{ title:{display:true, text:'Frequency (purchases/yr)', color:'#888', font:{size:11}}, min:-0.5, max:14, grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#888'} }
+    },
+    plugins:{ legend:{display:false} }
+  }
+});
+
+const months = ['Jan','Feb','Mar','Apr','May','Jun'];
+new Chart(document.getElementById('trendLine'), {
+  type:'line',
+  data:{
+    labels:months,
+    datasets:[
+      { label:'Champions', data:[7.2,7.8,8.1,8.5,8.3,8.4], borderColor:'#3266ad', backgroundColor:'#3266ad22', tension:0.4, borderWidth:2, pointRadius:3, fill:true },
+      { label:'Loyal', data:[4.5,4.8,5.0,5.2,5.1,5.1], borderColor:'#5DCAA5', backgroundColor:'#5DCAA522', tension:0.4, borderWidth:2, pointRadius:3, fill:true },
+      { label:'At-risk', data:[3.1,2.8,2.4,2.2,2.3,2.3], borderColor:'#EF9F27', backgroundColor:'#EF9F2722', tension:0.4, borderWidth:2, pointRadius:3, fill:true },
+    ]
+  },
+  options:{ ...commonOpts, scales:{ x:{grid:{display:false},ticks:{color:'#888'}}, y:{min:0, grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#888'}} }, plugins:{legend:{display:false}} }
+});
+
+const cats = [
+  { label:'Electronics', ch:[82,54,38,12] }, { label:'Apparel', ch:[65,70,52,28] },
+  { label:'Beauty', ch:[48,62,71,18] }, { label:'Home & Garden', ch:[38,55,30,45] }, { label:'Sports', ch:[72,42,25,10] },
+];
+const catEl = document.getElementById('catBars');
+cats.forEach(c=>{
+  const row = document.createElement('div');
+  row.style.marginBottom='10px';
+  row.innerHTML=`<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">${c.label}</div><div style="display:flex;gap:3px;height:10px;">`;
+  const inner = row.querySelector('div:last-child');
+  c.ch.forEach((v,i)=>{
+    const s=document.createElement('div');
+    s.style.cssText=`flex:${v};background:${segs[i].color};border-radius:2px;`;
+    inner.appendChild(s);
+  });
+  catEl.appendChild(row);
+});
+const catLeg = document.createElement('div');
+catLeg.className='legend'; catLeg.style.marginTop='12px';
+segs.forEach(s=>{ catLeg.innerHTML+=`<span class="legend-item"><span class="legend-dot" style="background:${s.color};"></span>${s.name}</span>`; });
+catEl.appendChild(catLeg);
+
+new Chart(document.getElementById('aovChart'), {
+  type:'bar',
+  data:{ labels:segs.map(s=>s.name), datasets:[{ data:[187,134,98,61], backgroundColor:segs.map(s=>s.color), borderRadius:4, borderSkipped:false }] },
+  options:{ ...commonOpts,
+    scales:{ x:{grid:{display:false},ticks:{color:'#888'}}, y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#888',callback:v=>`$${v}`}} },
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>`$${c.raw}`}} }
+  }
+});
+
+new Chart(document.getElementById('ageChart'), {
+  type:'bar',
+  data:{
+    labels:segs.map(s=>s.name),
+    datasets:[
+      { label:'18–25', data:[22,12,31,8], backgroundColor:'#AFA9EC', borderRadius:3 },
+      { label:'26–35', data:[35,28,42,15], backgroundColor:'#7F77DD', borderRadius:3 },
+      { label:'36–50', data:[30,40,20,38], backgroundColor:'#534AB7', borderRadius:3 },
+      { label:'51+', data:[13,20,7,39], backgroundColor:'#3C3489', borderRadius:3 },
+    ]
+  },
+  options:{ ...commonOpts,
+    scales:{ x:{grid:{display:false},stacked:true,ticks:{color:'#888'}}, y:{stacked:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#888',callback:v=>`${v}%`}} },
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw}%`}} }
+  }
+});
+
+const chData = [
+  { label:'App / direct', vals:[45,22,15,8] },
+  { label:'Email', vals:[30,40,20,18] },
+  { label:'Social', vals:[15,25,48,30] },
+  { label:'Organic', vals:[10,13,17,44] },
+];
+const chEl = document.getElementById('channelBars');
+chData.forEach(c=>{
+  const row=document.createElement('div'); row.style.marginBottom='10px';
+  row.innerHTML=`<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">${c.label}</div><div style="display:flex;gap:3px;height:10px;"></div>`;
+  const bar=row.querySelector('div:last-child');
+  c.vals.forEach((v,i)=>{ const d=document.createElement('div'); d.style.cssText=`flex:${v};background:${segs[i].color};border-radius:2px;`; bar.appendChild(d); });
+  chEl.appendChild(row);
+});
+const chLeg=document.createElement('div'); chLeg.className='legend'; chLeg.style.marginTop='12px';
+segs.forEach(s=>{ chLeg.innerHTML+=`<span class="legend-item"><span class="legend-dot" style="background:${s.color};"></span>${s.name}</span>`; });
+chEl.appendChild(chLeg);
+
+const recs = [
+  { seg:'Champions', color:'#3266ad', badge:'#B5D4F4', badgeText:'#0C447C', size:'3,494', priority:'Retain', action:'VIP loyalty rewards + early access', lift:'+12% LTV' },
+  { seg:'Loyal', color:'#5DCAA5', badge:'#9FE1CB', badgeText:'#085041', size:'4,243', priority:'Upsell', action:'Bundle offers + cross-sell campaigns', lift:'+18% AOV' },
+  { seg:'At-risk', color:'#EF9F27', badge:'#FAC775', badgeText:'#633806', size:'2,746', priority:'Winback', action:'Discount reactivation + churn survey', lift:'+22% retention' },
+  { seg:'Dormant', color:'#D85A30', badge:'#F5C4B3', badgeText:'#712B13', size:'1,997', priority:'Re-engage', action:'High-value gift + sunset unresponsive', lift:'+8% reactivation' },
+];
+const rt = document.getElementById('recTable');
+recs.forEach(r=>{
+  rt.innerHTML+=`<tr>
+    <td><span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:${r.color};display:inline-block;"></span>${r.seg}</span></td>
+    <td>${r.size}</td>
+    <td><span class="badge" style="background:${r.badge};color:${r.badgeText};">${r.priority}</span></td>
+    <td>${r.action}</td>
+    <td style="font-weight:500;">${r.lift}</td>
+  </tr>`;
+});
+
+let selSeg = 0;
+const segBtns = document.getElementById('segButtons');
+const detailPanel = document.getElementById('detailPanel');
+function renderDetail(i) {
+  selSeg = i;
+  document.querySelectorAll('.seg-btn').forEach((b,j)=>b.classList.toggle('sel',j===i));
+  const s = segs[i];
+  detailPanel.innerHTML = [
+    ['Customers', `${s.count.toLocaleString()} (${s.pct}%)`],
+    ['Lifetime value', s.ltv], ['Purchase frequency', s.freq],
+    ['Avg. recency', s.recency], ['Avg. order value', s.aov],
+    ['Primary age group', s.age], ['Top channel', s.channel],
+  ].map(([k,v])=>`<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${v}</span></div>`).join('');
+}
+segs.forEach((s,i)=>{
+  const b=document.createElement('button'); b.className='seg-btn'; b.dataset.i=i;
+  b.innerHTML=`<span class="seg-btn-dot" style="background:${s.color};"></span><span class="seg-btn-name">${s.name}</span><span class="seg-btn-count">${s.count.toLocaleString()}</span>`;
+  b.onclick=()=>renderDetail(i); segBtns.appendChild(b);
+});
+renderDetail(0);
+
+const tabs = document.querySelectorAll('.tab');
+const panels = { overview:'tab-overview', segments:'tab-segments', patterns:'tab-patterns', demographics:'tab-demographics' };
+tabs.forEach(t=>{
+  t.onclick=()=>{
+    tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active');
+    Object.values(panels).forEach(p=>{ document.getElementById(p).style.display='none'; });
+    document.getElementById(panels[t.dataset.tab]).style.display='';
+  };
+});
+</script>
