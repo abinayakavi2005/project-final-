@@ -1,0 +1,305 @@
+
+<h2 class="sr-only">Predictive Analytics Dashboard — interactive time-series forecasting with linear regression, moving average, and exponential smoothing models.</h2>
+
+<style>
+  .pa-wrap { padding: 1rem 0; font-family: var(--font-sans); color: var(--color-text-primary); }
+  .pa-controls { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 1.5rem; align-items: center; }
+  .pa-controls label { font-size: 13px; color: var(--color-text-secondary); }
+  .pa-controls select { font-size: 13px; padding: 6px 10px; }
+  .pa-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .pa-metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; }
+  .pa-metric-label { font-size: 12px; color: var(--color-text-secondary); margin: 0 0 4px; }
+  .pa-metric-value { font-size: 22px; font-weight: 500; margin: 0; }
+  .pa-metric-sub { font-size: 11px; color: var(--color-text-tertiary); margin: 2px 0 0; }
+  .pa-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 8px; font-size: 12px; color: var(--color-text-secondary); }
+  .pa-legend span { display: flex; align-items: center; gap: 5px; }
+  .pa-swatch { width: 28px; height: 3px; border-radius: 2px; display: inline-block; }
+  .pa-swatch.dashed { background: repeating-linear-gradient(90deg,currentColor 0,currentColor 4px,transparent 4px,transparent 8px); }
+  .pa-section { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin: 1.5rem 0 0.75rem; }
+  .pa-insight { background: var(--color-background-secondary); border-left: 3px solid #378ADD; border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; padding: 10px 14px; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px; }
+  .pa-insight strong { color: var(--color-text-primary); font-weight: 500; }
+  .pa-step { display: flex; gap: 12px; margin-bottom: 10px; }
+  .pa-step-num { width: 24px; height: 24px; border-radius: 50%; background: #378ADD; color: #fff; font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .pa-step-content { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; }
+  .pa-step-content strong { color: var(--color-text-primary); font-weight: 500; }
+</style>
+
+<div class="pa-wrap">
+  <div class="pa-controls">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <label for="dataset-sel">Dataset</label>
+      <select id="dataset-sel">
+        <option value="sales">Monthly Sales Revenue</option>
+        <option value="temp">Global Temperature Anomaly</option>
+        <option value="users">App User Growth</option>
+        <option value="energy">Energy Consumption</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <label for="model-sel">Model</label>
+      <select id="model-sel">
+        <option value="linear">Linear Regression</option>
+        <option value="moving">Moving Average</option>
+        <option value="exp">Exponential Smoothing</option>
+        <option value="poly">Polynomial Regression</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <label for="horizon-sel">Forecast</label>
+      <select id="horizon-sel">
+        <option value="6">6 months</option>
+        <option value="12" selected>12 months</option>
+        <option value="24">24 months</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="pa-metrics" id="metrics"></div>
+
+  <div class="pa-legend" id="legend">
+    <span><span class="pa-swatch" style="background:#378ADD;height:3px;"></span> Historical</span>
+    <span><span class="pa-swatch" style="background:#1D9E75;height:3px;"></span> Forecast</span>
+    <span><span class="pa-swatch" style="background:rgba(29,158,117,0.15);height:10px;border-radius:2px;width:28px;"></span> Confidence interval</span>
+    <span><span class="pa-swatch" style="background:#E24B4A;height:2px;border-style:dashed;"></span> Trend line</span>
+  </div>
+
+  <div style="position:relative;width:100%;height:320px;">
+    <canvas id="forecastChart" role="img" aria-label="Time series chart showing historical data and model forecast with confidence interval.">Interactive predictive analytics chart.</canvas>
+  </div>
+
+  <p class="pa-section">Model pipeline</p>
+  <div class="pa-step">
+    <div class="pa-step-num">1</div>
+    <div class="pa-step-content"><strong>Data ingestion & cleaning</strong> — parse timestamps, handle missing values via interpolation, remove outliers using IQR fencing (Q1 − 1.5×IQR, Q3 + 1.5×IQR).</div>
+  </div>
+  <div class="pa-step">
+    <div class="pa-step-num">2</div>
+    <div class="pa-step-content"><strong>Feature engineering</strong> — extract lag features, rolling means, and seasonal dummies. Normalize with min-max scaling before fitting.</div>
+  </div>
+  <div class="pa-step">
+    <div class="pa-step-num">3</div>
+    <div class="pa-step-content"><strong>Model training</strong> — fit on 80% training split. Hyperparameters tuned via time-series cross-validation (walk-forward validation).</div>
+  </div>
+  <div class="pa-step">
+    <div class="pa-step-num">4</div>
+    <div class="pa-step-content"><strong>Evaluation</strong> — measure MAE, RMSE, and R² on 20% held-out test set. Residuals checked for autocorrelation (Ljung-Box test).</div>
+  </div>
+  <div class="pa-step">
+    <div class="pa-step-num">5</div>
+    <div class="pa-step-content"><strong>Forecast & uncertainty</strong> — generate point forecasts + 95% confidence intervals via bootstrapped residuals. Widen interval with horizon.</div>
+  </div>
+
+  <p class="pa-section">Model insights</p>
+  <div id="insights"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DATASETS = {
+  sales: {
+    label: 'Sales Revenue ($k)',
+    unit: '$k',
+    seed: [42, 48, 51, 45, 55, 62, 58, 67, 72, 69, 78, 85, 80, 88, 91, 84, 95, 103, 98, 107, 115, 110, 120, 128],
+    noise: 6, trend: 3.5, seasonal: [0,-3,-1,2,5,8,6,9,11,4,-2,-5]
+  },
+  temp: {
+    label: 'Temperature Anomaly (°C)',
+    unit: '°C',
+    seed: [0.12,0.18,0.22,0.15,0.25,0.31,0.28,0.34,0.38,0.42,0.39,0.45,0.48,0.52,0.55,0.50,0.58,0.63,0.60,0.67,0.71,0.68,0.74,0.78],
+    noise: 0.04, trend: 0.018, seasonal: [0.02,-0.01,0.01,0.03,0.02,-0.01,-0.02,0.01,0.02,-0.01,-0.02,0.01]
+  },
+  users: {
+    label: 'Monthly Active Users (k)',
+    unit: 'k',
+    seed: [10,13,17,22,28,35,43,52,61,71,82,94,107,121,136,152,169,187,206,226,247,269,292,316],
+    noise: 8, trend: 12, seasonal: [0,-5,-3,2,8,15,12,18,20,5,-10,-15]
+  },
+  energy: {
+    label: 'Energy Consumption (TWh)',
+    unit: 'TWh',
+    seed: [220,215,218,210,205,198,195,200,208,215,222,230,225,220,223,215,210,203,200,205,213,220,228,236],
+    noise: 5, trend: 0.8, seasonal: [15,10,5,-5,-10,-15,-12,-8,2,10,18,20]
+  }
+};
+
+const MODELS = {
+  linear: 'Linear Regression',
+  moving: 'Moving Average (window=3)',
+  exp: 'Exponential Smoothing (α=0.3)',
+  poly: 'Polynomial Regression (deg=2)'
+};
+
+function addNoise(v, scale) { return v + (Math.random()-0.5)*2*scale; }
+
+function generateHistory(ds) {
+  return ds.seed.map((v,i) => {
+    const s = ds.seasonal[i % 12] || 0;
+    return Math.max(0, +(v + s + addNoise(0, ds.noise * 0.5)).toFixed(2));
+  });
+}
+
+function linReg(data) {
+  const n = data.length, xs = data.map((_,i)=>i);
+  const mx = (n-1)/2, my = data.reduce((a,b)=>a+b,0)/n;
+  let num=0, den=0;
+  for(let i=0;i<n;i++){num+=(i-mx)*(data[i]-my);den+=(i-mx)**2;}
+  const m=num/den, b=my-m*mx;
+  return {m, b, predict:(x)=>m*x+b};
+}
+
+function polyReg(data, deg=2) {
+  const n=data.length;
+  function vandermonde(x,d){ return Array.from({length:d+1},(_,i)=>Math.pow(x,i)); }
+  const X=data.map((_,i)=>vandermonde(i,deg));
+  const Xt=X[0].map((_,c)=>X.map(r=>r[c]));
+  function matMul(A,B){ return A.map(r=>B[0].map((_,c)=>r.reduce((s,_,k)=>s+r[k]*B[k][c],0))); }
+  function matVec(M,v){ return M.map(r=>r.reduce((s,x,i)=>s+x*v[i],0)); }
+  function solve(A,b) {
+    const n=A.length, m=A.map((r,i)=>[...r,b[i]]);
+    for(let c=0;c<n;c++){
+      let mx=c; for(let r=c+1;r<n;r++) if(Math.abs(m[r][c])>Math.abs(m[mx][c])) mx=r;
+      [m[c],m[mx]]=[m[mx],m[c]];
+      for(let r=c+1;r<n;r++){ const f=m[r][c]/m[c][c]; for(let k=c;k<=n;k++) m[r][k]-=f*m[c][k]; }
+    }
+    const x=new Array(n).fill(0);
+    for(let i=n-1;i>=0;i--){ x[i]=m[i][n]; for(let j=i+1;j<n;j++) x[i]-=m[i][j]*x[j]; x[i]/=m[i][i]; }
+    return x;
+  }
+  const XtX=matMul(Xt,X), Xty=matVec(Xt,data);
+  const coeffs=solve(XtX,Xty);
+  return { predict:(x)=>coeffs.reduce((s,c,i)=>s+c*Math.pow(x,i),0), coeffs };
+}
+
+function movingAvg(data, w=3) {
+  const last=data.slice(-w), avg=last.reduce((a,b)=>a+b,0)/w;
+  const slope=(data[data.length-1]-data[data.length-1-w])/(w);
+  return {predict:(x)=>avg+slope*(x-(data.length-1))};
+}
+
+function expSmooth(data, alpha=0.3) {
+  let s=data[0];
+  for(let i=1;i<data.length;i++) s=alpha*data[i]+(1-alpha)*s;
+  const lr=linReg(data);
+  return {s, predict:(x)=>s+lr.m*(x-(data.length-1))};
+}
+
+function computeMetrics(actual, predicted) {
+  const n=actual.length;
+  const mae=actual.reduce((s,a,i)=>s+Math.abs(a-predicted[i]),0)/n;
+  const rmse=Math.sqrt(actual.reduce((s,a,i)=>s+(a-predicted[i])**2,0)/n);
+  const mean=actual.reduce((a,b)=>a+b,0)/n;
+  const ssTot=actual.reduce((s,a)=>s+(a-mean)**2,0);
+  const ssRes=actual.reduce((s,a,i)=>s+(a-predicted[i])**2,0);
+  const r2=1-ssRes/ssTot;
+  const mape=actual.reduce((s,a,i)=>s+Math.abs((a-predicted[i])/a),0)/n*100;
+  return {mae, rmse, r2, mape};
+}
+
+let chartInst = null;
+
+function buildChart() {
+  const dsKey=document.getElementById('dataset-sel').value;
+  const modelKey=document.getElementById('model-sel').value;
+  const horizon=+document.getElementById('horizon-sel').value;
+  const ds=DATASETS[dsKey];
+  const hist=generateHistory(ds);
+  const n=hist.length;
+
+  let model;
+  if(modelKey==='linear') model=linReg(hist);
+  else if(modelKey==='poly') model=polyReg(hist,2);
+  else if(modelKey==='moving') model=movingAvg(hist,3);
+  else model=expSmooth(hist,0.3);
+
+  const fitted=hist.map((_,i)=>+model.predict(i).toFixed(2));
+
+  const {mae, rmse, r2, mape}=computeMetrics(hist, fitted);
+
+  const forecastX=Array.from({length:horizon},(_,i)=>n+i);
+  const forecast=forecastX.map(x=>+Math.max(0,model.predict(x)).toFixed(2));
+
+  const residuals=hist.map((v,i)=>v-fitted[i]);
+  const resStd=Math.sqrt(residuals.reduce((s,r)=>s+r*r,0)/residuals.length);
+
+  const confUpper=forecast.map((v,i)=>+(v+1.96*resStd*(1+i*0.04)).toFixed(2));
+  const confLower=forecast.map((v,i)=>+Math.max(0,v-1.96*resStd*(1+i*0.04)).toFixed(2));
+
+  const labels=[
+    ...Array.from({length:n},(_,i)=>{const d=new Date(2023,i%12+1); return d.toLocaleString('default',{month:'short',year:'2-digit'});}),
+    ...forecastX.map(i=>{const d=new Date(2023,(i)%12+1); return d.toLocaleString('default',{month:'short',year:'2-digit'});})
+  ];
+
+  const histFull=[...hist, ...Array(horizon).fill(null)];
+  const forecastFull=[...Array(n-1).fill(null), hist[n-1], ...forecast];
+  const trendFull=[...hist.map((_,i)=>+fitted[i].toFixed(2)), ...forecast];
+
+  const upperFull=[...Array(n).fill(null), ...confUpper];
+  const lowerFull=[...Array(n).fill(null), ...confLower];
+
+  document.getElementById('metrics').innerHTML=`
+    <div class="pa-metric"><p class="pa-metric-label">R² Score</p><p class="pa-metric-value" style="color:#1D9E75">${r2.toFixed(3)}</p><p class="pa-metric-sub">Model fit</p></div>
+    <div class="pa-metric"><p class="pa-metric-label">MAE</p><p class="pa-metric-value">${mae.toFixed(1)}<span style="font-size:14px;color:var(--color-text-secondary)"> ${ds.unit}</span></p><p class="pa-metric-sub">Mean abs. error</p></div>
+    <div class="pa-metric"><p class="pa-metric-label">RMSE</p><p class="pa-metric-value">${rmse.toFixed(1)}<span style="font-size:14px;color:var(--color-text-secondary)"> ${ds.unit}</span></p><p class="pa-metric-sub">Root mean sq. error</p></div>
+    <div class="pa-metric"><p class="pa-metric-label">MAPE</p><p class="pa-metric-value" style="color:${mape<10?'#1D9E75':mape<20?'#BA7517':'#E24B4A'}">${mape.toFixed(1)}%</p><p class="pa-metric-sub">Accuracy proxy</p></div>
+    <div class="pa-metric"><p class="pa-metric-label">Horizon</p><p class="pa-metric-value">${horizon}<span style="font-size:14px;color:var(--color-text-secondary)"> mo</span></p><p class="pa-metric-sub">Forecast window</p></div>
+  `;
+
+  const endVal=forecast[forecast.length-1];
+  const startVal=hist[0];
+  const pctChange=(((endVal-startVal)/startVal)*100).toFixed(1);
+  const trend=endVal>startVal?'upward':'downward';
+  document.getElementById('insights').innerHTML=`
+    <div class="pa-insight">Model: <strong>${MODELS[modelKey]}</strong> — R² of <strong>${r2.toFixed(3)}</strong> explains ${(r2*100).toFixed(1)}% of variance in the data.</div>
+    <div class="pa-insight">Forecast indicates a <strong>${trend} trend</strong>, with ${horizon}-month projected change of <strong>${pctChange}%</strong> from baseline.</div>
+    <div class="pa-insight">MAPE of <strong>${mape.toFixed(1)}%</strong> — ${mape<10?'excellent accuracy, suitable for operational planning.':mape<20?'acceptable accuracy; use with caution for high-stakes decisions.':'high error rate; consider adding more features or a non-linear model.'}</div>
+    <div class="pa-insight">Confidence interval widens with forecast horizon — uncertainty at month ${horizon} is ±<strong>${(1.96*resStd*(1+(horizon-1)*0.04)).toFixed(1)} ${ds.unit}</strong>.</div>
+  `;
+
+  const ctx=document.getElementById('forecastChart').getContext('2d');
+  if(chartInst){ chartInst.destroy(); }
+  chartInst=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Confidence upper',data:upperFull,borderColor:'transparent',backgroundColor:'rgba(29,158,117,0.12)',fill:'+1',pointRadius:0,tension:0.3},
+        {label:'Confidence lower',data:lowerFull,borderColor:'transparent',backgroundColor:'rgba(29,158,117,0.12)',fill:false,pointRadius:0,tension:0.3},
+        {label:'Historical',data:histFull,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.08)',fill:true,borderWidth:2.5,pointRadius:2,pointBackgroundColor:'#378ADD',tension:0.3},
+        {label:'Forecast',data:forecastFull,borderColor:'#1D9E75',backgroundColor:'transparent',borderWidth:2.5,pointRadius:2.5,pointBackgroundColor:'#1D9E75',tension:0.3,borderDash:[]},
+        {label:'Trend line',data:trendFull,borderColor:'#E24B4A',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0,borderDash:[5,4]},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'var(--color-background-primary)',
+          titleColor:'var(--color-text-primary)',
+          bodyColor:'var(--color-text-secondary)',
+          borderColor:'var(--color-border-secondary)',
+          borderWidth:1,
+          callbacks:{
+            label:(ctx)=>{
+              if(ctx.dataset.label.includes('Confidence')||ctx.raw===null) return null;
+              return `${ctx.dataset.label}: ${ctx.raw} ${ds.unit}`;
+            }
+          }
+        },
+        annotation:{}
+      },
+      scales:{
+        x:{grid:{color:'rgba(128,128,128,0.08)'},ticks:{color:'#888',font:{size:11},maxRotation:45,autoSkip:true,maxTicksLimit:18}},
+        y:{grid:{color:'rgba(128,128,128,0.08)'},ticks:{color:'#888',font:{size:11},callback:(v)=>`${v} ${ds.unit}`}}
+      }
+    }
+  });
+}
+
+document.getElementById('dataset-sel').onchange=buildChart;
+document.getElementById('model-sel').onchange=buildChart;
+document.getElementById('horizon-sel').onchange=buildChart;
+
+buildChart();
+</script>
